@@ -2,17 +2,17 @@
 set -euo pipefail
 
 # Expect this env var to be set in Railway
-: "${Garmintokens_Path:?Garmintokens_Path env var is missing}"
+: "${GARMINTOKENS_PATH_Path:?GARMINTOKENS_PATH_Path env var is missing}"
 
 # Write tokens from env into the file your app expects
-if [[ -n "${GARMINTOKENS_JSON:-}" ]]; then
-  mkdir -p "$(dirname "$Garmintokens_Path")"
-  printf "%s" "$GARMINTOKENS_JSON" > "$Garmintokens_Path"
-elif [[ -n "${GARMINTOKENS_B64:-}" ]]; then
-  mkdir -p "$(dirname "$Garmintokens_Path")"
-  echo "$GARMINTOKENS_B64" | base64 -d > "$Garmintokens_Path"
+if [[ -n "${GARMINTOKENS_PATH_JSON:-}" ]]; then
+  mkdir -p "$(dirname "$GARMINTOKENS_PATH_Path")"
+  printf "%s" "$GARMINTOKENS_PATH_JSON" > "$GARMINTOKENS_PATH_Path"
+elif [[ -n "${GARMINTOKENS_PATH_B64:-}" ]]; then
+  mkdir -p "$(dirname "$GARMINTOKENS_PATH_Path")"
+  echo "$GARMINTOKENS_PATH_B64" | base64 -d > "$GARMINTOKENS_PATH_Path"
 else
-  echo "No tokens provided (set GARMINTOKENS_JSON or GARMINTOKENS_B64 in Railway)." >&2
+  echo "No tokens provided (set GARMINTOKENS_PATH_JSON or GARMINTOKENS_PATH_B64 in Railway)." >&2
   exit 1
 fi
 
