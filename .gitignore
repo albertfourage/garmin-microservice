@@ -1,0 +1,14 @@
+﻿# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+# VSCode
+.vscode/
+# OS
+.DS_Store
+Thumbs.db
+# Local tokens / zips
+tokens.json
+*.zip
