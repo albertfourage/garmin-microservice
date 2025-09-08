@@ -1,21 +1,38 @@
-import os, pathlib
+# app/bootstrap_tokens.py
+import json
+import os
+import pathlib
+import sys
+from garminconnect import Garmin
+
+TOKENS_DIR = pathlib.Path(os.getenv("GARMINTOKENS", "/data/garmin_tokens"))
+
+def _write_json(p: pathlib.Path, obj):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(obj), encoding="utf-8")
 
 def main():
-    token_dir = os.getenv("GARMINTOKENS", "/data/garmin_tokens")
-    p = pathlib.Path(token_dir)
-    p.mkdir(parents=True, exist_ok=True)
-
-    o1 = os.getenv("OAUTH1_TOKEN_JSON")
-    o2 = os.getenv("OAUTH2_TOKEN_JSON")
-
-    if not (o1 and o2):
-        print("bootstrap_tokens: missing OAUTH1_TOKEN_JSON or OAUTH2_TOKEN_JSON; continuing without writing tokens")
+    # If tokens already exist, do nothing (idempotent)
+    o1 = TOKENS_DIR / "oauth1_token.json"
+    o2 = TOKENS_DIR / "oauth2_token.json"
+    if o1.exists() and o2.exists():
+        print(f"[bootstrap_tokens] Found existing tokens in {TOKENS_DIR}", flush=True)
         return
 
-    (p / "oauth1_token.json").write_text(o1, encoding="utf-8")
-    (p / "oauth2_token.json").write_text(o2, encoding="utf-8")
+    email = os.getenv("GARMIN_EMAIL")
+    password = os.getenv("GARMIN_PASSWORD")
+    if not (email and password):
+        print("[bootstrap_tokens] No tokens found and no GARMIN_EMAIL/PASSWORD set; skipping bootstrap.", flush=True)
+        return
 
-    print(f"bootstrap_tokens: wrote tokens to {p}")
+    TOKENS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Login to create/refresh tokens (garth will dump to TOKENS_DIR)
+    os.environ["GARMINTOKENS"] = str(TOKENS_DIR)
+    g = Garmin(email, password)
+    g.login()
+    # g.garth.dump(TOKENS_DIR)  # garminconnect handles dump on login; keep explicit if needed
+    print(f"[bootstrap_tokens] Wrote tokens to {TOKENS_DIR}", flush=True)
 
 if __name__ == "__main__":
     main()
