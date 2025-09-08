@@ -20,7 +20,6 @@ PORT="${PORT:-8080}"
 
 # Canonical locations inside the container
 TOKENS_FILE="${GARMINTOKENS_PATH:-${Garmintokens_Path:-/data/garmintokens.json}}"
-TOKENS_DIR="/data/garmin_tokens"
 
 echo "[start] pwd=$(pwd)"
 echo "[start] python=$(python -V 2>&1)"
