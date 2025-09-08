@@ -26,7 +26,6 @@ echo "[start] python=$(python -V 2>&1)"
 echo "[start] port=$PORT  tz=$TZ"
 
 # Ensure destinations exist
-mkdir -p "$(dirname "$TOKENS_FILE")" "$TOKENS_DIR"
 
 # Decide token source and write/use it
 mode=""
