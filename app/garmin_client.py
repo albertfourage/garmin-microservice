@@ -77,8 +77,9 @@ class GarminClient:
 
     def get_user_hrmax(self) -> Optional[int]:
         try:
-            prof = self._client.get_user_profile()
-            return (prof or {}).get("userMetricsProfile") or {}.get("maxHeartRate")
+            prof = self._client.get_user_profile() or {}
+            ump = prof.get("userMetricsProfile") or {}
+            return ump.get("maxHeartRate")
         except Exception:
             # Some accounts expose HRmax in different endpoints; fall back to None
             return None
