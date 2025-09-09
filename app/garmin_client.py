@@ -40,11 +40,14 @@ class GarminClient:
         Initialize and login. Prefer tokens. If tokens fail and creds are present,
         retry to create/refresh tokens.
         """
+        # When email/password are empty strings, Garmin() still loads tokens from env path
         self._client = Garmin(self.email or "", self.password or "")
 
         try:
+            # First attempt: token-based login
             self._client.login()
         except Exception as first_err:
+            # If no creds available, surface a helpful error early
             if not (self.email and self.password):
                 raise RuntimeError(
                     "Garmin tokens missing/invalid and no credentials provided. "
@@ -52,13 +55,16 @@ class GarminClient:
                     "or set GARMIN_EMAIL/GARMIN_PASSWORD locally for a one-time bootstrap."
                 ) from first_err
 
+            # Retry with provided credentials to refresh tokens
             self._client = Garmin(self.email, self.password)
-            self._client.login()
+            self._client.login()  # will raise if still failing
+
     def close(self) -> None:
         try:
             if self._client:
                 self._client.logout()
         except Exception:
+            # Be tolerant on shutdown
             pass
 
     # ------------- Convenience getters used by your routes -----------------
@@ -72,54 +78,45 @@ class GarminClient:
     def get_user_hrmax(self) -> Optional[int]:
         try:
             prof = self._client.get_user_profile()
-            metrics = (prof or {}).get("userMetricsProfile", {})
-            return metrics.get("maxHeartRate")
+            return (prof or {}).get("userMetricsProfile") or {}.get("maxHeartRate")
         except Exception:
+            # Some accounts expose HRmax in different endpoints; fall back to None
             return None
 
     def get_lthr_run(self) -> Optional[int]:
-        """Extracts lactate threshold heart rate for running from heart rate zones."""
         try:
             zones = self._client.get_heart_rate_zones()
-            if isinstance(zones, dict):
-                return zones.get("lactateThresholdHeartRate")
+            # Heuristic: lactate threshold often provided in "lactateThresholdHeartRate"
+            return (zones or {}).get("lactateThresholdHeartRate")
         except Exception:
-            pass
             return None
 
     def get_lthr_cycle(self) -> Optional[int]:
-        """Extracts lactate threshold heart rate for cycling from cycling heart rate zones."""
         try:
             cycling = self._client.get_cycling_heart_rate_zones()
-            if isinstance(cycling, dict):
-                return cycling.get("lactateThresholdHeartRate")
+            return (cycling or {}).get("lactateThresholdHeartRate")
         except Exception:
-            pass
-        return None
+            return None
 
     def get_ftp(self) -> Optional[int]:
         try:
             ftp = self._client.get_ftp()
+            # library may return dict or list; normalize
             if isinstance(ftp, dict):
                 return ftp.get("currentFTP") or ftp.get("ftp")
             if isinstance(ftp, list) and ftp:
                 return ftp[0].get("currentFTP") or ftp[0].get("ftp")
         except Exception:
             pass
-            return None
-
-    def get_vo2max(self) -> Optional[float]:
-        """Extracts VO2max value from the Garmin API. Returns None if not present."""
-        try:
-            result = self._client.get_vo2max()
-            if isinstance(result, dict):
-                return result.get("vo2MaxValue")
-        except Exception:
-            pass
         return None
 
     def estimate_threshold_pace_seconds(self) -> Optional[float]:
+        """
+        Optional helper if you had one before. This just returns None unless you
+        compute it from recent activities. Keep or replace with your prior logic.
+        """
         try:
+            # Example heuristic (very conservative): use best 10k pace in last 90 days
             today = date.today()
             start = date.fromordinal(today.toordinal() - 90)
             acts = self.get_activities_range(start, today)
@@ -127,10 +124,10 @@ class GarminClient:
             for a in acts or []:
                 if a.get("activityTypeDTO", {}).get("typeKey") != "running":
                     continue
-                dist = (a.get("distance") or 0.0)
-                dur = (a.get("duration") or 0.0)
+                dist = (a.get("distance") or 0.0)  # meters
+                dur = (a.get("duration") or 0.0)   # seconds
                 if dist >= 10000 and dur > 0:
-                    pace = dur / (dist / 1000.0)
+                    pace = dur / (dist / 1000.0)  # sec/km
                     best = pace if best is None else min(best, pace)
             return best
         except Exception:
@@ -144,10 +141,15 @@ class GarminClient:
             return None
 
     def get_activities_range(self, start: date, end: date) -> List[Dict[str, Any]]:
+        """
+        Return raw activities within [start, end]. Adjust to your preferred pagination.
+        """
         items: List[Dict[str, Any]] = []
         try:
+            # Pull in batches; garminconnect typically paginates by index/limit
             start_str = start.strftime("%Y-%m-%d")
             end_str = end.strftime("%Y-%m-%d")
+            # If your previous implementation used a different method, keep that.
             page = 0
             page_size = 100
             while True:
@@ -177,7 +179,7 @@ class GarminClient:
             out["summary"] = self._client.get_user_summary(ds)
         except Exception:
             out["summary"] = {}
-    try:
+        try:
             out["hrv"] = self._client.get_hrv_data(ds)
         except Exception:
             out["hrv"] = {}
@@ -200,4 +202,3 @@ def get_gc():
         yield gc
     finally:
         gc.close()
-

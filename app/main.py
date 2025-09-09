@@ -23,44 +23,30 @@ def health():
 def params_guarded(_: None = Depends(require_api_key)):
     with get_gc() as gc:
         today = date.today()
-
-        # Heart rate (resting/max) on today
+        # Resting HR
         hr = gc._safe(lambda: gc._client.get_heart_rates(today.strftime("%Y-%m-%d"))) or {}
         rhr = hr.get("restingHeartRate")
-        hrmax = gc.get_user_hrmax()
-
-        # VO2max (running/cycling/etc.)
+        # VO2max
         vo2 = gc._safe(lambda: gc._client.get_vo2max()) or {}
         vo2_value = vo2.get("vo2MaxValue")
-
-        # Lactate Threshold HR (for run/cycle)
-        lthr_run = gc.get_lthr_run()
-        lthr_cycle = gc.get_lthr_cycle()
-
-        # FTP bike
-        ftp = gc.get_ftp()
-        # Estimated run threshold pace
-        rthreshold = gc.estimate_threshold_pace_seconds()
-        # Latest weight
-        weight = gc.get_latest_weight()
+        # Thresholds & FTP
         out = {
-            "HRmax": hrmax,
+            "HRmax": gc.get_user_hrmax(),
             "HRrest": rhr,
-            "LTHR_run": lthr_run,
-            "LTHR_cycle": lthr_cycle,
-            "FTP_bike_W": ftp,
-            "rThreshold_pace_s_per_km": rthreshold,
+            "LTHR_run": gc.get_lthr_run(),
+            "LTHR_cycle": gc.get_lthr_cycle(),
+            "FTP_bike_W": gc.get_ftp(),
+            "rThreshold_pace_s_per_km": gc.estimate_threshold_pace_seconds(),
             "VO2max": vo2_value,
-            "weight_kg": weight,
+            "weight_kg": gc.get_latest_weight(),
             "updated_at": today.isoformat(),
-            "source": "GarminConnect",
+            "source": "GarminConnect"
         }
         return out
 
 @app.get("/activities")
 def activities(start: str, end: str, _: None = Depends(require_api_key)):
-    d0 = parse_date(start)
-    d1 = parse_date(end)
+    d0 = parse_date(start); d1 = parse_date(end)
     with get_gc() as gc:
         items = gc.get_activities_range(d0, d1)
         return {"items": items}
@@ -77,4 +63,3 @@ def daily(date_str: str, _: None = Depends(require_api_key)):
         data = gc.get_daily_kpis(d)
         data["date"] = d.isoformat()
         return data
-
