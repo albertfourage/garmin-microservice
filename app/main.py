@@ -25,14 +25,13 @@ def params_guarded(_: None = Depends(require_api_key)):
         today = date.today()
         # Resting HR
         hr = gc._safe(lambda: gc._client.get_heart_rates(today.strftime("%Y-%m-%d"))) or {}
-        rhr = hr.get("restingHeartRate", None)
-        hrmax = hr.get("maxHeartRate", None)
+        rhr = hr.get("restingHeartRate")
         # VO2max
         vo2 = gc._safe(lambda: gc._client.get_vo2max()) or {}
         vo2_value = vo2.get("vo2MaxValue")
         # Thresholds & FTP
         out = {
-            "HRmax": hrmax,
+            "HRmax": gc.get_user_hrmax(),
             "HRrest": rhr,
             "LTHR_run": gc.get_lthr_run(),
             "LTHR_cycle": gc.get_lthr_cycle(),
