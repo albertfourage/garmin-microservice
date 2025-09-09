@@ -30,7 +30,7 @@ def params_guarded(_: None = Depends(require_api_key)):
         hrmax = ((prof.get("userMetricsProfile") or {}).get("maxHeartRate"))
         hrmax = hr.get("maxHeartRate", "N/A")
         # VO2max
-        max_metrics = gc._safe(lambda: gc._client.get_max_metrics(today_iso), {}) or {}
+        max_metrics = gc._safe(lambda: gc._client.get_max_metrics(today.strftime("%Y-%m-%d")), {}) or {}
         vo2_value = max_metrics.get("vo2MaxValue") or max_metrics.get("vo2Max")
         # Thresholds & FTP
         out = {
