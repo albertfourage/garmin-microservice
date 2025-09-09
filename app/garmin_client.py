@@ -77,10 +77,10 @@ class GarminClient:
 
     def get_user_hrmax(self) -> Optional[int]:
         try:
-            prof = self._client.get_user_profile()
-            return (prof or {}).get("userMetricsProfile") or {}.get("maxHeartRate")
+            prof = self._client.get_user_profile() or {}
+            # Correct nested access: profile -> userMetricsProfile -> maxHeartRate
+            return ((prof.get("userMetricsProfile") or {}).get("maxHeartRate"))
         except Exception:
-            # Some accounts expose HRmax in different endpoints; fall back to None
             return None
 
     def get_lthr_run(self) -> Optional[int]:

@@ -23,13 +23,10 @@ def health():
 def params_guarded(_: None = Depends(require_api_key)):
     with get_gc() as gc:
         today = date.today()
-        # Resting HR
+        # Resting HR (today)
         hr = gc._safe(lambda: gc._client.get_heart_rates(today.strftime("%Y-%m-%d"))) or {}
         rhr = hr.get("restingHeartRate")
-        # VO2max
-        vo2 = gc._safe(lambda: gc._client.get_vo2max()) or {}
-        vo2_value = vo2.get("vo2MaxValue")
-        # Thresholds & FTP
+
         out = {
             "HRmax": gc.get_user_hrmax(),
             "HRrest": rhr,
@@ -37,10 +34,10 @@ def params_guarded(_: None = Depends(require_api_key)):
             "LTHR_cycle": gc.get_lthr_cycle(),
             "FTP_bike_W": gc.get_ftp(),
             "rThreshold_pace_s_per_km": gc.estimate_threshold_pace_seconds(),
-            "VO2max": vo2_value,
+            "VO2max": gc.get_vo2max_value(),
             "weight_kg": gc.get_latest_weight(),
             "updated_at": today.isoformat(),
-            "source": "GarminConnect"
+            "source": "GarminConnect",
         }
         return out
 
