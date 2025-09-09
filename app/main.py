@@ -1,6 +1,6 @@
 import os
 from datetime import date, datetime
-from typing import Optional, Dict, Any
+from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, Header
 from app.garmin_client import get_gc
 from app.utils import parse_date
@@ -59,24 +59,9 @@ def activity_steps(activity_id: int, _: None = Depends(require_api_key)):
         return {"activity_id": activity_id, "steps": gc.get_activity_steps(activity_id)}
 
 @app.get("/daily")
-def daily(
-    _: None = Depends(require_api_key),
-    d: Optional[str] = Query(
-        None,
-        description="ISO date YYYY-MM-DD; defaults to today",
-        example="2025-09-09",
-    ),
-) -> Dict[str, Any]:
-    # Parse date manually so bad input returns 400 instead of FastAPI's 422
-    if d is None:
-        day = _date.today()
-    else:
-        try:
-            day = _date.fromisoformat(d)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format; use YYYY-MM-DD")
-
+def daily(date_str: str, _: None = Depends(require_api_key)):
+    d = parse_date(date_str)
     with get_gc() as gc:
-        data = gc.get_daily_kpis(day)
-        data["date"] = day.isoformat()
+        data = gc.get_daily_kpis(d)
+        data["date"] = d.isoformat()
         return data
