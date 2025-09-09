@@ -3,6 +3,7 @@ from typing import Optional
 
 class ParamsResponse(BaseModel):
     HRmax: Optional[int]
+    HRmax2: Optional[int]
     HRrest: Optional[int]
     LTHR_run: Optional[int]
     LTHR_cycle: Optional[int]
